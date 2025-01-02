@@ -10,8 +10,8 @@ const int relay4Pin = 26;
 
 // Antares MQTT
 #define ACCESSKEY "ce0d0dc97f0249f7:9f118bba1a80a861"  // Ganti dengan access key Antares Anda
-#define WIFISSID "Server"                              // Ganti dengan SSID Wi-Fi Anda
-#define PASSWORD "kelompok"                            // Ganti dengan password Wi-Fi Anda
+#define WIFISSID "Roemah Poetih"                              // Ganti dengan SSID Wi-Fi Anda
+#define PASSWORD "Abzx1234"                            // Ganti dengan password Wi-Fi Anda
 
 #define projectName "Innovillage_123"  // Nama proyek di Antares
 #define deviceName "Lynx32"            // Nama device di Antares
@@ -116,8 +116,12 @@ void loop() {
 
   // Baca data dari Arduino jika tersedia
   if (SerialFromArduino.available()) {
-    dataFromArduino = SerialFromArduino.readStringUntil('\n');
-    dataReady = true;  // Tandai data sebagai siap untuk dikirim
+    char c = SerialFromArduino.read();
+    Serial.print(c);  // Menampilkan byte per byte yang diterima
+    dataFromArduino += c;  // Menambahkan karakter ke dataFromArduino
+    if (c == '\n') {
+      dataReady = true;  // Tandai jika karakter newline diterima
+    }
   }
 
   // Kirim data dari Arduino ke Antares melalui LoRa setiap interval
