@@ -9,8 +9,8 @@ const int relay4Pin = 26;
 
 // Antares MQTT
 #define ACCESSKEY "ce0d0dc97f0249f7:9f118bba1a80a861"  // Ganti dengan access key Antares Anda
-#define WIFISSID "Server"                              // Ganti dengan SSID Wi-Fi Anda
-#define PASSWORD "kelompok"                            // Ganti dengan password Wi-Fi Anda
+#define WIFISSID "MySahang"                              // Ganti dengan SSID Wi-Fi Anda
+#define PASSWORD "MySahang2024"                          // Ganti dengan password Wi-Fi Anda
 
 #define projectName "Innovillage_123"  // Nama proyek di Antares
 #define deviceName "Lynx32"            // Nama device di Antares
@@ -22,6 +22,9 @@ HardwareSerial SerialFromArduino(2);  // UART2, RX (GPIO16), TX (GPIO17)
 
 String dataFromArduino;  // Variabel untuk menyimpan data dari Arduino
 bool dataReady = false;  // Flag untuk menandai apakah data Arduino sudah siap
+
+unsigned long lastWiFiAttempt = 0;    // Waktu percobaan terakhir Wi-Fi
+const unsigned long wifiRetryInterval = 120000;  // 2 menit dalam milidetik (120.000 ms)
 
 // Callback untuk menerima data MQTT
 void callback(char topic[], byte payload[], unsigned int length) {
@@ -61,7 +64,6 @@ void callback(char topic[], byte payload[], unsigned int length) {
   Serial.println("Relay status diperbarui berdasarkan MQTT.");
 }
 
-
 void setup() {
   // Atur pin relay sebagai output
   pinMode(relay1Pin, OUTPUT);
@@ -81,8 +83,8 @@ void setup() {
   Serial.println("Inisialisasi...");
 
   // Koneksi Wi-Fi dan MQTT
+  connectWiFi();  // Coba sambungkan Wi-Fi saat setup
   antares.setDebug(true);
-  antares.wifiConnection(WIFISSID, PASSWORD);
   antares.setMqttServer();
   antares.setCallback(callback);
 
@@ -90,6 +92,15 @@ void setup() {
 }
 
 void loop() {
+  // Periksa koneksi Wi-Fi setiap 2 menit
+  if (WiFi.status() != WL_CONNECTED) {
+    unsigned long currentMillis = millis();
+    if (currentMillis - lastWiFiAttempt >= wifiRetryInterval) {
+      lastWiFiAttempt = currentMillis;
+      connectWiFi();  // Coba sambungkan ulang ke Wi-Fi
+    }
+  }
+
   // Periksa koneksi MQTT
   antares.checkMqttConnection();
 
@@ -139,10 +150,30 @@ void loop() {
 
     // Kirim data ke Antares
     antares.publish(projectName, deviceName);
-    Serial.println("data terkirim");
+    Serial.println("Data terkirim");
 
     // Reset buffer
     dataFromArduino = "";
+  }
+}
+
+// Fungsi untuk menghubungkan ke Wi-Fi
+void connectWiFi() {
+  Serial.print("Menghubungkan ke Wi-Fi...");
+  WiFi.begin(WIFISSID, PASSWORD);
+
+  unsigned long startAttemptTime = millis();
+  const unsigned long wifiTimeout = 10000;  // Timeout 10 detik
+
+  while (WiFi.status() != WL_CONNECTED && (millis() - startAttemptTime) < wifiTimeout) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\nWi-Fi terhubung.");
+  } else {
+    Serial.println("\nGagal terhubung ke Wi-Fi.");
   }
 }
 
